@@ -1,0 +1,2 @@
+Code works with output csv file, when there are no newline characters after last line;
+If file has newline after last line - uncomment 147 line in Final.asm file

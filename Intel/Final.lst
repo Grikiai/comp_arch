@@ -1,0 +1,345 @@
+     1                                  
+     2                                  ;; ABI : Functions preserve the registers rbx, rsp, rbp, r12, r13, r14, and r15; 
+     3                                  ;; while rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11  are scratch registers.
+     4                                  ;; „Parameters to functions are passed in the registers rdi, rsi, rdx, rcx, r8, r9, 
+     5                                  ;;  and further values are passed on the stack in reverse order.“
+     6                                  ;-----------------------------------------------------------------------------
+     7                                  ;   void hvoid writeToOutput(char* data, FILE* output);
+     8                                  ;                 		   rdi           rsi  
+     9                                  ;-----------------------------------------------------------------------------
+    10                                  global	writeToOutput:function, format:data, name:data
+    11                                  extern   fprintf 
+    12                                  extern   printf 
+    13                                  
+    14                                  
+    15                                  section .text
+    16                                  
+    17                                  writeToOutput:
+    18                                  
+    19 00000000 53                              push    rbx
+    20                                          
+    21 00000001 4889FB                          mov     rbx, rdi	
+    22                                          
+    23 00000004 48891C25[BC0B0000]              mov	[datastrt], rbx		;save data start @ datastart variable	
+    24                                          
+    25 0000000C 4989F2                          mov     r10, rsi
+    26                                          
+    27                                  
+    28 0000000F 4831C0                          xor     rax, rax  ; zeroout rax reg - will keep lines here
+    29 00000012 4D31ED                          xor	r13, r13  ; zeroout reg - array nr 
+    30 00000015 4D31F6                          xor     r14, r14  ; zeroout reg - columns here
+    31 00000018 4D31FF                          xor	r15, r15  ; zeroout reg - int type
+    32                                          
+    33                                          
+    34                                           
+    35                                      .loopChars:
+    36 0000001B 803B0A                          cmp     byte[rbx], 0x0A
+    37 0000001E 0F8404010000                    je      .endOfLine
+    38 00000024 803B3B                          cmp     byte[rbx], ';'
+    39 00000027 7410                            je      .endOfColumn
+    40 00000029 803B00                          cmp     byte[rbx], 0
+    41 0000002C 0F8404010000                    je     .sortStart
+    42 00000032 EB00                            jmp	.next
+    43                                       
+    44                                       .next:
+    45 00000034 48FFC3                          inc     rbx
+    46 00000037 EBE2                            jmp     .loopChars
+    47                                       
+    48                                       .endOfColumn:
+    49                                       
+    50 00000039 4883F800                     	cmp	rax, 0		; we dont strore numbers when reading header
+    51 0000003D 74F5                         	je	.next
+    52                                       
+    53 0000003F 49FFC6                       	inc	r14
+    54 00000042 4983FE03                     	cmp	r14, 3		;if third column - store ascii for numbers 
+    55 00000046 7408                         	je	.fourth
+    56 00000048 4983FE04                     	cmp	r14, 4		;if fourth column - convert to int and store into array
+    57 0000004C 7452                         	je	.convert
+    58 0000004E EBE4                         	jmp	.next
+    59                                  	
+    60                                       .fourth:
+    61                                  
+    62 00000050 48FFC3                       	inc	rbx
+    63 00000053 8A13                         	mov	dl, byte[rbx]
+    64 00000055 418897[00000000]            	mov	byte[num+r15], dl
+    65                                      	
+    66 0000005C 48FFC3                      	inc	rbx
+    67 0000005F 803B3B                      	cmp	byte[rbx], ';'
+    68 00000062 74D5                        	je	.endOfColumn
+    69 00000064 49FFC7                      	inc	r15
+    70 00000067 8A13                        	mov	dl, byte[rbx]
+    71 00000069 418897[00000000]            	mov	byte[num+r15], dl
+    72                                      	
+    73 00000070 48FFC3                      	inc	rbx
+    74 00000073 803B3B                      	cmp	byte[rbx], ';'
+    75 00000076 74C1                        	je	.endOfColumn
+    76 00000078 49FFC7                      	inc	r15
+    77 0000007B 8A13                        	mov	dl, byte[rbx]
+    78 0000007D 418897[00000000]            	mov	byte[num+r15], dl
+    79                                      	
+    80 00000084 48FFC3                      	inc	rbx
+    81 00000087 803B3B                      	cmp	byte[rbx], ';'
+    82 0000008A 74AD                        	je	.endOfColumn
+    83 0000008C 49FFC7                      	inc	r15
+    84 0000008F 8A13                        	mov	dl, byte[rbx]
+    85 00000091 418897[00000000]            	mov	byte[num+r15], dl
+    86                                      	
+    87 00000098 48FFC3                      	inc	rbx
+    88 0000009B 803B3B                      	cmp	byte[rbx], ';'
+    89 0000009E 7499                        	je	.endOfColumn		
+    90                                      	
+    91                                      .convert:
+    92 000000A0 52                          	push	rdx
+    93 000000A1 4831D2                      	xor	rdx, rdx
+    94 000000A4 50                          	push 	rax
+    95 000000A5 4831C0                      	xor	rax, rax
+    96                                      	
+    97 000000A8 418A97[00000000]            		mov	dl, byte[num+r15]
+    98 000000AF 80EA30                      		sub	dl, 0x30
+    99                                      
+   100                                      	
+   101 000000B2 49FFCF                      		dec	r15
+   102 000000B5 4983FF00                    		cmp	r15, 0
+   103 000000B9 7C4E                        		jl	.endCmp
+   104 000000BB 4180BF[00000000]2D          		cmp	byte[num+r15], '-'
+   105 000000C3 745E                        		je	.negate
+   106 000000C5 418A87[00000000]            		mov	al, byte[num+r15]
+   107 000000CC 4883E830                    		sub	rax, 0x30
+   108 000000D0 486BC00A                    		imul	rax, 0x0A
+   109 000000D4 4801C2                      		add	rdx, rax
+   110                                      	
+   111 000000D7 49FFCF                      		dec	r15
+   112 000000DA 4983FF00                    		cmp	r15, 0
+   113 000000DE 7C29                        		jl	.endCmp
+   114 000000E0 4180BF[00000000]2D          		cmp	byte[num+r15], '-'
+   115 000000E8 7439                        		je	.negate
+   116 000000EA 418A87[00000000]            		mov	al, byte[num+r15]
+   117 000000F1 4883E830                    		sub	rax, 0x30
+   118 000000F5 486BC064                    		imul	rax, 0x64
+   119 000000F9 4801C2                      		add	rdx, rax
+   120                                      	
+   121 000000FC 49FFCF                      		dec	r15
+   122 000000FF 4180BF[00000000]2D          		cmp	byte[num+r15], '-'
+   123 00000107 741A                        		je	.negate
+   124                                      
+   125                                      .endCmp:
+   126 00000109 4889D1                      	mov	rcx, rdx
+   127 0000010C 58                          	pop 	rax
+   128 0000010D 48898400[04000000]          		mov	[arr+rax*2], rax		; i lyginius array indeksus sudedame eilutes nr
+   129 00000115 48898C00[05000000]          		mov	[arr+rax*2+1], rcx 	        ; i nelyginius - gauta skaiciu, cia rax turi buti pataisyta 
+   130 0000011D 5A                          	pop	rdx
+   131                                      	
+   132 0000011E E911FFFFFF                  	jmp	.next  	
+   133                                      .negate:
+   134                                  
+   135 00000123 48F7DA                      	neg	rdx
+   136 00000126 EBE1                        	jmp	.endCmp
+   137                                          
+   138                                      .endOfLine:  
+   139                                  
+   140 00000128 48FFC0                          inc 	rax
+   141 0000012B 4D31F6                          xor 	r14, r14
+   142 0000012E 4D31FF                          xor 	r15, r15
+   143 00000131 E9FEFEFFFF                      jmp     .next
+   144                                          
+   145                                    
+   146                                      .sortStart:
+   147                                      	;dec	rax
+   148 00000136 48890425[C40B0000]          	mov	[lines], rax	
+   149 0000013E 4C8B2425[C40B0000]          	mov	r12, [lines]		;restore previous rax value into r12	
+   150 00000146 49FFCC                      	dec	r12			; dec r12 - we will go until n-1 element
+   151                                      		
+   152 00000149 4D31ED                      	xor	r13, r13		;zero this out
+   153 0000014C 49FFC5                      	inc	r13			; but start  from 1 - well keep 
+   154                                      	
+   155                                      	
+   156 0000014F 4831DB                      	xor	rbx, rbx		; zero rbx - will keep switch
+   157                                          
+   158 00000152 EB00                            jmp	.sort
+   159                                      
+   160                                       .sort:
+   161                                      	; will sort in a descending order
+   162 00000154 4831C0                      	xor	rax, rax
+   163 00000157 4831C9                      	xor	rcx, rcx	
+   164                                      	
+   165 0000015A 438A842D[05000000]          	mov	al,byte[arr+r13*2+1]	; lets load first nr
+   166 00000162 438A8C2D[07000000]          	mov	cl,byte[arr+r13*2+3]	;  lets load second number
+   167 0000016A 38C8                        	cmp	al, cl
+   168 0000016C 7C0A                        	jl	.switch
+   169                                  
+   170 0000016E 49FFC5                      	inc	r13
+   171 00000171 4D39EC                      	cmp	r12, r13
+   172 00000174 743F                        	je	.endSort
+   173 00000176 EBDC                        	jmp	.sort
+   174                                      
+   175                                      .switch:
+   176                                      	
+   177 00000178 43888C2D[05000000]          	mov	byte[arr+r13*2+1], cl
+   178 00000180 4388842D[07000000]          	mov	byte[arr+r13*2+3], al
+   179                                      	
+   180 00000188 438A842D[04000000]          	mov	al, byte[arr+r13*2]
+   181 00000190 438A8C2D[06000000]          	mov	cl, byte[arr+r13*2+2]
+   182                                      	
+   183 00000198 43888C2D[04000000]          	mov	byte[arr+r13*2], cl
+   184 000001A0 4388842D[06000000]          	mov	byte[arr+r13*2+2], al
+   185                                      	
+   186                                      	
+   187 000001A8 48FFC3                      	inc	rbx		; increment switch value
+   188                                      	
+   189 000001AB 49FFC5                      	inc	r13
+   190 000001AE 4D39EC                      	cmp	r12, r13
+   191 000001B1 7402                        	je	.endSort
+   192 000001B3 EB9F                        	jmp	.sort
+   193                                      	
+   194                                      .endSort:
+   195 000001B5 4883FB00                    	cmp	rbx, 0
+   196 000001B9 740B                        	je	.write
+   197                                      	
+   198 000001BB 4831DB                      	xor	rbx, rbx
+   199 000001BE 4D31ED                      	xor	r13, r13		;zero this out
+   200 000001C1 49FFC5                      	inc	r13			; but start  from 1
+   201                                      	
+   202 000001C4 EB8E                        	jmp	.sort
+   203                                      	
+   204                                      .write:
+   205 000001C6 488B1C25[BC0B0000]          	mov	rbx, [datastrt]			; move data start to rbx
+   206 000001CE 4831C0                      	xor	rax, rax				; well keep current line here
+   207 000001D1 4D31E4                      	xor	r12, r12
+   208 000001D4 4C8B2425[C40B0000]          	mov	r12, [lines]
+   209 000001DC 4831C9                        	xor	rcx, rcx
+   210 000001DF 4831D2                        	xor	rdx, rdx
+   211 000001E2 EB00                        	jmp	.writeText
+   212                                      	
+   213                                      .writeText:
+   214 000001E4 50                          	push	rax
+   215 000001E5 4152                     	push	r10		
+   216                                  			
+   217                                  
+   218                                      	;fprintf(fout, format1, "rax")
+   219 000001E7 4C89D7                          	mov     rdi, r10
+   220 000001EA 48BE-                           	mov     rsi, name		
+   220 000001EC [0300000000000000] 
+   221 000001F4 E8(00000000)                    	call    fprintf
+   222                                          
+   223                                          
+   224 000001F9 415A                            pop	r10
+   225 000001FB 58                              pop	rax
+   226                                          
+   227 000001FC EB00                            jmp	.writeHeader
+   228                                          
+   229                                      .writeHeader:
+   230 000001FE 50                          	push	rax
+   231 000001FF 4152                     	push	r10		
+   232                                  			
+   233                                  
+   234                                      	;fprintf(fout, format1, "rax")
+   235 00000201 4C89D7                          	mov     rdi, r10
+   236 00000204 4831F6                          	xor	rsi, rsi
+   237 00000207 48BE-                           	mov     rsi, format
+   237 00000209 [0000000000000000] 
+   238 00000211 4831D2                          	xor	rdx, rdx
+   239 00000214 8A13                            	mov     dl, byte[rbx]		
+   240 00000216 E8(00000000)                    	call    fprintf
+   241                                          
+   242                                          
+   243 0000021B 415A                            pop	r10
+   244 0000021D 58                              pop	rax
+   245                                          
+   246                                  
+   247 0000021E 803B0A                          cmp	byte[rbx], 0x0A
+   248 00000221 7405                            je	.prepSorted
+   249 00000223 48FFC3                          inc	rbx
+   250                                          
+   251 00000226 EBD6                            jmp	.writeHeader
+   252                                      
+   253                                          
+   254                                      	
+   255                                      .prepSorted:
+   256 00000228 4831DB                      	xor	rbx, rbx
+   257 0000022B 488B1C25[BC0B0000]          	mov	rbx, [datastrt]		; move data start to rbx
+   258 00000233 48FFC0                      	inc	rax
+   259                                  
+   260                                      	
+   261 00000236 4D31E4                      	xor	r12, r12
+   262 00000239 4C8B2425[C40B0000]          	mov	r12, [lines]
+   263                                      	
+   264 00000241 4C39E0                      	cmp	rax,r12
+   265 00000244 744B                          	je	.endOfFile
+   266                                        		
+   267 00000246 4831C9                        	xor	rcx, rcx		; well keep line counter
+   268 00000249 4831D2                        	xor	rdx, rdx
+   269 0000024C 8A9400[04000000]              	mov	dl, byte[arr+rax*2]	; and sorted current line
+   270                                        	
+   271                                        
+   272 00000253 EB00                        	jmp	.findLine
+   273                                      
+   274                                      .findLine:
+   275 00000255 803B0A                      	cmp	byte[rbx], 0x0A
+   276 00000258 7407                        	je	.linePlus		
+   277 0000025A EB00                        	jmp	.next2
+   278                                      	
+   279                                      .next2:
+   280 0000025C 48FFC3                      	inc	rbx
+   281 0000025F EBF4                        	jmp	.findLine
+   282                                      	
+   283                                      .linePlus:
+   284 00000261 48FFC1                      	inc	rcx
+   285 00000264 38D1                        	cmp	cl, dl	
+   286 00000266 7402                        	je	.writeLine
+   287 00000268 EBF2                        	jmp	.next2
+   288                                      	
+   289                                      .writeLine:
+   290                                      
+   291 0000026A 48FFC3                      	inc	rbx
+   292 0000026D 50                              push	rax
+   293 0000026E 4152                     	push	r10	
+   294                                  
+   295                                      	;fprintf(fout, format1, "rax")
+   296 00000270 4C89D7                          	mov     rdi, r10
+   297 00000273 48BE-                           	mov     rsi, format
+   297 00000275 [0000000000000000] 
+   298 0000027D 4831D2                          	xor	rdx, rdx
+   299 00000280 8A13                            	mov     dl, byte[rbx]		
+   300 00000282 E8(00000000)                    	call    fprintf
+   301                                          
+   302                                          
+   303                                          	
+   304 00000287 415A                            pop	r10
+   305 00000289 58                              pop	rax
+   306                                          	
+   307                                          
+   308 0000028A 803B0A                          cmp	byte[rbx], 0x0A
+   309 0000028D 7499                            je	.prepSorted
+   310                                  
+   311 0000028F EBD9                            jmp	.writeLine
+   312                                      	 	 
+   313                                      
+   314                                      .endOfFile: 
+   315 00000291 5B                              pop     rbx
+   316 00000292 C3                              ret   
+   317                                  
+   318                                  
+   319                                  section .bss
+   320 00000000 ????????                    num:	resb	4          ; Array of size 4- for ascii to num conversion
+   321 00000004 <res BB8h>                  arr:	resb	3000	   ; array for index and number keeping
+   322 00000BBC ????????????????            datastrt:	resq	1
+   323 00000BC4 ????????????????            lines:	resq	1
+   324                                      
+   325                                  
+   326                                          
+   327                                  section .data
+   328                                  
+   329 00000000 256300                      format:	db	"%c", 0
+   330 00000003 4D6F6E696B61204B69-         name: 	db	"Monika Kisieliūtė, papildomų studijų I kursas", 10, 0 
+   330 0000000C 7369656C69C5AB74C4-
+   330 00000015 972C20706170696C64-
+   330 0000001E 6F6DC5B32073747564-
+   330 00000027 696AC5B32049206B75-
+   330 00000030 727361730A00       
+   331                                      
+   332                                      
+   333                                  
+   334                                  	
+   335                                  
+   336                                       
+   337                                     
