@@ -1,1 +1,1 @@
-# comp_arch
+# Computer Architecture course @ MIF
