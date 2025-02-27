@@ -6,4 +6,4 @@ Basically four tasks:
 4. the same for RISC-V
 
 Had a lot of fun while designing simple CPU operations. 
-Unfortunaltelly, whole CPU design was lost, i hope one day ill find or recreate it. To peek at design tasks use Logism. 
+Unfortunaltelly, whole CPU design was lost, i hope one day ill find or recreate it. To peek at design tasks use Logism. For RISC-V code, we used RARS.
