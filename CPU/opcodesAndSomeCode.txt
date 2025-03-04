@@ -1,0 +1,168 @@
+----------------------------------------------------------------------
+ALU OP (k == 235):
+----------------------------------------------------------------------
+0 000 0001           VLD Rd, (xx): Rd<- (Rd<k)                   |  01
+0 000 0010           NEG Rd, (xx): Rd<- (k - Rd)                 |  02
+0 000 0011           INC Rd, (xx): Rd<- (Rd+1)%k                 |  03
+0 000 0100           DEC Rd, (xx): Rd<- (k-1+Rd)                 |  04
+0 000 0101           CPMZ Rd, (xx): Rd<- (Rd==0)                 |  05
+0 000 0110           INV Rd, (xx): Rd<- (Rd^-1)                  |  06
+0 000 1000           SHL Rd, (xx): Rd<- (Rd<<1)                  |  08
+0 000 1001           15bJ
+0 000 1010           ROL Rd, (xx): Rd<- (Rd<<1), ciklinis        |  0a
+0 000 1011           ROR Rd, (xx): Rd<- (Rd>>1), ciklinis        |  0b
+0 000 1100           NOT Rd, (xx): Rd<- (¬Rd)                    |  0c
+0 000 1101           N1 Rd, (xx): Rd<- (Rd 1nių b. kiekis)       |  0d
+0 000 1110           N0 Rd, (xx): Rd<- (Rd 0nių b. kiekis)       |  0e
+0 101 1010           OP3 Rd, (xx): Rd<- (Rd^(1/5))               |  5a
+
+0 001 0000           ADD Rd, (Rs): Rd<- (Rd+Rs)%k                |  10
+0 001 0001           SUB Rd, (Rs): Rd<- (k+Rd-Rs)                |  11
+0 001 0010           MUL Rd, (Rs): Rd<- (Rd*Rs)%k                |  12
+0 001 0011           DIV Rd, (Rs): Rd<- (Rd*(Rs^-1))             |  13
+0 001 1100           XOR Rd, (Rs): Rd<- XOR(Rd, Rs)              |  1c
+0 001 1101           AND Rd, (Rs): Rd<- Rd&Rs                    |  1d
+0 001 1110           OR Rd, (Rs): Rd<- Rd|Rs                     |  1e  
+
+0 101 1000           OP1 Rd, (Rs): Rd<- Rd>=Rs                   | 58
+0 101 1001           OP2 Rd, (Rs): Rd<- (Rd==NEG(Rs))            | 59
+0 101 1011           OP4 Rd, (Rs): Rd<-(Rd*(X^(5))+X+Rs==0)%k    | 5b
+
+
+----------------------------------------------------------------------
+CPU OP:
+----------------------------------9,----------------------------------
+1 000 0000           NOP: nothing<-nothing                        | 80
+ 
+1 000 1001           JZ, immed: PC ← immed, if ZF == 1            | 89 
+1 000 1010           JNZ, immed: PC ← immed, if ZF == 0           | 8a
+1 000 1011           JBAF, immed: PC ← immed, if BAF == 1         | 8b
+1 000 1100           JNBAF, immed: PC ← immed, if BAF == 0        | 8c
+1 000 1101           JMP,immed: PC ← immed                        | 8d
+
+1 001 1000           LW Rd, immed: Rd ← Mem[immed]                | 98
+1 001 1001           SW Rd, immed: Mem[immed] ← Rd                | 99
+1 001 1010           LI Rd, immed: Rd ← immed                     | 9a
+
+1 001 0100           LW Rd, (Rs): Rd ← Mem[Rs]                    | 94
+1 001 0101           SW Rd, (Rs): Mem[Rs] ← Rd                    | 95
+1 001 0110           MOW Rd, (Rs): Rd ← Rs                        | 96
+
+
+
+1 010 0000           push PC: Mem[SP]<-PC                         | a0
+1 010 0001           pop PC: PC<-Mem[SP]                          | a1
+
+1 011 0000           push RD: Mem[SP]<-Rd                         | b0
+1 011 0001           pop RD: Rd <-Mem[SP]                         | b1
+
+1 100 0000           inc SP: SP<-SP++                             | c0
+1 100 0001           dec SP: SP<-SP--                             | c1
+---------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------
+¬HALT:
+0 1 1 1 1 1 1 0
+1 1 1 1 1 1 1 0
+1 1 1 1 0 0 0 0
+0 0 0 0 1 1 1 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 1 1 1 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 0 0 0 0 0 0 0
+0 1 1 1 1 1 0 0
+0 0 0 0 1 1 1 0
+1 1 1 0 0 0 0 0
+1 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 1 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+
+
+Testing random LW, SW etc:
+9a 00 01 9a 10 02 9a 20 03 94 45 95 25 96 02 98 40 04 99 50 05
+
+Testing JumpBAF:
+9a 00 01 80 9a 10 eb 80 13 01 8c 40 8b 41 
+9a 00 01 80 9a 10 05 80 10 01 8c 40 8b 41
+
+Testting JumpZ:
+9a 00 00 80 9a 10 00 80 10 01 89 00 8a 01
+9a 00 00 80 9a 10 01 80 10 01 89 00 8a 01
+
+Testing jump:
+8d 04 8d 06 8d 02 8d 00 <- forever loopas
+
+Testting stack:
+
+c1 a0 c1 <- SP registro inicializacija. Visada jei naudosime stacką, reikia šitos komandos (c1)
+9a 00 00 b0 00 c1 
+9a 10 01 b0 10 c1 
+9a 20 02 b0 20 c1
+9a 30 03 b0 30 c1
+9a 40 04 b0 40 c1 
+9a 50 05 b0 50 c1 
+9a 60 06 b0 60 c1
+9a 70 07 b0 70 c1
+9a 80 08 b0 80 c1 
+9a 90 09 b0 90 c1 
+9a a0 0a b0 a0 c1
+9a b0 0b b0 b0 c1
+9a c0 0c b0 c0 c1 
+9a d0 0d b0 d0 c1 
+9a e0 0e b0 e0 c1
+9a f0 0f b0 f0 
+b1 00 c0
+b1 10 c0
+b1 20 c0
+b1 30 c0
+b1 40 c0
+b1 50 c0
+b1 60 c0
+b1 70 c0
+b1 80 c0
+b1 90 c0
+b1 a0 c0
+b1 b0 c0
+b1 c0 c0
+b1 d0 c0
+b1 e0 c0
+b1 f0 c0
+a1 
+
+viršuje pavaizduotas kodas atlieka tokius veiksmus:
+1. inicializuoja stacką ir į jį įdeda programos pradžią - tai yra adresas 02 
+***čia svarbu paminėti, jog šiame kode push pc instrukcijos adresas yra 01 - taigi ši instrukcija vis tik papushina ne savo, o sekančios instrukcijos pc***
+***taigi, kai grįšime atgal, ši push PC instrukcija nebebus vykdoma***
+***jeigu labai reikia, galima tai pataisyti paprastu MAIN pakeitimu - toje vietoje, kur yra multiplekseris į RAM, sujungti ne PC, o PC-1***
+2. Rašo registro numerį į registrą (realiai for i in range(16): Rdi = i)
+3. Po to kai skaičių parašo į registrą, jį iš karto įdeda į stacką ir pakeičia SP
+4. Kai užsipildo visi registrai, atleikamos pop komandos - registru reikšmės apsiverčia
+5. Grįžta į programos pradžią (adresu 02)
+
+
+
+
+
+
+
+
+
+
